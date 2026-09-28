@@ -202,6 +202,21 @@ jobs:
           echo "=== defconfig tail after KernelSU integration ==="
           tail -n 8 "$defconfig"
 
+      - name: "Fix EAS CPU masks"
+        working-directory: ${{ env.KERNEL_NAME }}
+        env:
+          arch: ${{ steps.generate-args.outputs.ARCH }}
+        run: |
+          # The single-SIM yoshino defconfigs omit LITTLE_CPU_MASK/BIG_CPU_MASK.
+          # They are int symbols with no default, so silentoldconfig prompts for
+          # them interactively and aborts in CI. Set the same values the sibling
+          # *_dsds defconfigs use: LITTLE=A53 CPU0-3 (0x0f), big=A73 CPU4-7 (0xf0).
+          # Only added when absent, so kernels that already define them are untouched.
+          defconfig="./arch/$arch/configs/$DEFCONFIG_NAME"
+          grep -q "^CONFIG_LITTLE_CPU_MASK=" "$defconfig" || echo "CONFIG_LITTLE_CPU_MASK=15" >> "$defconfig"
+          grep -q "^CONFIG_BIG_CPU_MASK=" "$defconfig" || echo "CONFIG_BIG_CPU_MASK=240" >> "$defconfig"
+          grep -E "^(CONFIG_LITTLE_CPU_MASK|CONFIG_BIG_CPU_MASK)=" "$defconfig"
+
       - name: "Make defconfig"
         working-directory: ${{ env.KERNEL_NAME }}
         env:
