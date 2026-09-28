@@ -184,30 +184,41 @@ jobs:
             exit 0
           fi
 
-          # Clean up any previous integration
-          rm -rf ./KernelSU ./drivers/kernelsu
+          # The kernel tree already ships a 4.4-backported ReSukiSU driver as
+          # in-tree files (drivers/kernelsu). Upstream v3.2.0 does not compile
+          # on 4.4 (unconditional post-4.4 includes, pre-5.x selinux APIs...),
+          # so prefer the in-tree driver and only clone upstream as a fallback
+          # for trees that don't carry one.
+          rm -rf ./KernelSU
+          if [ -d "./drivers/kernelsu" ]; then
+            echo "Using in-tree drivers/kernelsu, skipping ReSukiSU clone"
+          else
+            # ReSukiSU v3.2.0 is the last release that still offers a kprobes hook
+            # (v4.x is manual-hook only). This 4.4 kernel has KPROBES on in its
+            # defconfig, so the kprobes hook needs no kernel source patching.
+            # Note: v3.2.0's own setup.sh clones the wrong upstream (SukiSU-Ultra),
+            # so the driver integration is done here explicitly and pinned to the tag.
+            git clone --depth 1 --branch v3.2.0 https://github.com/ReSukiSU/ReSukiSU KernelSU
 
-          # ReSukiSU v3.2.0 is the last release that still offers a kprobes hook
-          # (v4.x is manual-hook only). This 4.4 kernel has KPROBES on in its
-          # defconfig, so the kprobes hook needs no kernel source patching.
-          # Note: v3.2.0's own setup.sh clones the wrong upstream (SukiSU-Ultra),
-          # so the driver integration is done here explicitly and pinned to the tag.
-          git clone --depth 1 --branch v3.2.0 https://github.com/ReSukiSU/ReSukiSU KernelSU
+            # v3.2.0 uses MODULE_IMPORT_NS() unconditionally, but that macro only
+            # exists on kernel 5.4+ (module symbol namespacing). KSU is built into
+            # the kernel here, so the namespace import is irrelevant on 4.4; drop
+            # those lines so the driver compiles.
+            grep -rl 'MODULE_IMPORT_NS' KernelSU/kernel 2>/dev/null | xargs -r sed -i '/MODULE_IMPORT_NS/d'
 
-          # v3.2.0 uses MODULE_IMPORT_NS() unconditionally, but that macro only
-          # exists on kernel 5.4+ (module symbol namespacing). KSU is built into
-          # the kernel here, so the namespace import is irrelevant on 4.4; drop
-          # those lines so the driver compiles.
-          grep -rl 'MODULE_IMPORT_NS' KernelSU/kernel 2>/dev/null | xargs -r sed -i '/MODULE_IMPORT_NS/d'
+            # v3.2.0 includes <linux/compiler_types.h> unconditionally, but that
+            # header only exists on kernel 4.18+. Guard it so the 4.4 build works
+            # (this mirrors the fix in newer ReSukiSU).
+            grep -q '__has_include(<linux/compiler_types.h>)' KernelSU/kernel/allowlist.c || \
+              sed -i 's|^#include <linux/compiler_types.h>$|#if __has_include(<linux/compiler_types.h>)\n#include <linux/compiler_types.h>\n#endif|' KernelSU/kernel/allowlist.c
 
-          # v3.2.0 includes <linux/compiler_types.h> unconditionally, but that
-          # header only exists on kernel 4.18+. Guard it so the 4.4 build works
-          # (this mirrors the fix in newer ReSukiSU).
-          grep -q '__has_include(<linux/compiler_types.h>)' KernelSU/kernel/allowlist.c || \
-            sed -i 's|^#include <linux/compiler_types.h>$|#if __has_include(<linux/compiler_types.h>)\n#include <linux/compiler_types.h>\n#endif|' KernelSU/kernel/allowlist.c
+            cd drivers
+            ln -sf ../KernelSU/kernel kernelsu
+            cd ..
+          fi
 
+          # Wire the driver into kbuild (each step is a no-op if already wired).
           cd drivers
-          ln -sf ../KernelSU/kernel kernelsu
           grep -q "kernelsu" Makefile || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> Makefile
           grep -q 'source "drivers/kernelsu/Kconfig"' Kconfig || sed -i '/endmenu/i\source "drivers/kernelsu/Kconfig"' Kconfig
           cd ..
