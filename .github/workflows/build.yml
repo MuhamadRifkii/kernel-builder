@@ -173,33 +173,42 @@ jobs:
           echo "ARCH=$ARCH" >> $GITHUB_OUTPUT
           echo "args=$args" >> $GITHUB_OUTPUT
 
-      - name: "Update KernelSU"
+      - name: "Update ReSukiSU"
         working-directory: ${{ env.KERNEL_NAME }}
         env:
           withKernelSU: ${{ matrix.repos.withKernelSU }}
           arch: ${{ steps.generate-args.outputs.ARCH }}
         run: |
           if [ "$withKernelSU" != "true" ]; then
-            echo "withKernelSU is not true, skipping KernelSU integration"
+            echo "withKernelSU is not true, skipping ReSukiSU integration"
             exit 0
           fi
 
           # Clean up any previous integration
           rm -rf ./KernelSU ./drivers/kernelsu
 
-          # KernelSU v1.0+ dropped non-GKI support; v0.9.5 is the last release
-          # that builds on 4.4 kernels, so pin to it.
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s v0.9.5
+          # ReSukiSU v3.2.0 is the last release that still offers a kprobes hook
+          # (v4.x is manual-hook only). This 4.4 kernel has KPROBES on in its
+          # defconfig, so the kprobes hook needs no kernel source patching.
+          # Note: v3.2.0's own setup.sh clones the wrong upstream (SukiSU-Ultra),
+          # so the driver integration is done here explicitly and pinned to the tag.
+          git clone --depth 1 --branch v3.2.0 https://github.com/ReSukiSU/ReSukiSU KernelSU
 
-          # Make sure the kprobe options KernelSU hooks rely on are enabled.
+          cd drivers
+          ln -sf ../KernelSU/kernel kernelsu
+          grep -q "kernelsu" Makefile || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> Makefile
+          grep -q 'source "drivers/kernelsu/Kconfig"' Kconfig || sed -i '/endmenu/i\source "drivers/kernelsu/Kconfig"' Kconfig
+          cd ..
+
+          # Enable KernelSU and select the kprobes hook (also the choice default).
           defconfig="./arch/$arch/configs/$DEFCONFIG_NAME"
-          for opt in CONFIG_KPROBES CONFIG_HAVE_KPROBES CONFIG_KSU; do
+          for opt in CONFIG_KSU CONFIG_KSU_KPROBES_HOOK CONFIG_KPROBES CONFIG_HAVE_KPROBES; do
             grep -q "^${opt}=" "$defconfig" || echo "${opt}=y" >> "$defconfig"
           done
           # Spelled CONFIG_KPROBE_EVENTS on 5.x, CONFIG_KPROBE_EVENT on 4.x
           grep -qE "^CONFIG_KPROBE_EVENTS?=y" "$defconfig" || echo "CONFIG_KPROBE_EVENTS=y" >> "$defconfig"
 
-          echo "=== defconfig tail after KernelSU integration ==="
+          echo "=== defconfig tail after ReSukiSU integration ==="
           tail -n 8 "$defconfig"
 
       - name: "Fix incomplete defconfig"
