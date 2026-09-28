@@ -1,13 +1,13 @@
 [
   {
     "kernelSource": {
-      "name": "android_kernel_chopin_android_T",
-      "repo": "https://github.com/ChopinKernels/android_kernel_chopin_android_T",
-      "branch": "T",
-      "device": "chopin",
-      "defconfig": "chopin_user_defconfig"
+      "name": "android_kernel_sony_msm8998-EAS",
+      "repo": "https://github.com/MuhamadRifkii/android_kernel_sony_msm8998-EAS",
+      "branch": "14-r3-p",
+      "device": "maple",
+      "defconfig": "lineage-msm8998-yoshino-maple"
     },
-    "withKernelSU": false,
+    "withKernelSU": true,
     "toolchains": [
       {
         "repo": "https://github.com/kdrag0n/proton-clang",

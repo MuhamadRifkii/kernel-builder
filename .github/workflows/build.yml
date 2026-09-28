@@ -173,6 +173,35 @@ jobs:
           echo "ARCH=$ARCH" >> $GITHUB_OUTPUT
           echo "args=$args" >> $GITHUB_OUTPUT
 
+      - name: "Update KernelSU"
+        working-directory: ${{ env.KERNEL_NAME }}
+        env:
+          withKernelSU: ${{ matrix.repos.withKernelSU }}
+          arch: ${{ steps.generate-args.outputs.ARCH }}
+        run: |
+          if [ "$withKernelSU" != "true" ]; then
+            echo "withKernelSU is not true, skipping KernelSU integration"
+            exit 0
+          fi
+
+          # Clean up any previous integration
+          rm -rf ./KernelSU ./drivers/kernelsu
+
+          # KernelSU v1.0+ dropped non-GKI support; v0.9.5 is the last release
+          # that builds on 4.4 kernels, so pin to it.
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s v0.9.5
+
+          # Make sure the kprobe options KernelSU hooks rely on are enabled.
+          defconfig="./arch/$arch/configs/$DEFCONFIG_NAME"
+          for opt in CONFIG_KPROBES CONFIG_HAVE_KPROBES CONFIG_KSU; do
+            grep -q "^${opt}=" "$defconfig" || echo "${opt}=y" >> "$defconfig"
+          done
+          # Spelled CONFIG_KPROBE_EVENTS on 5.x, CONFIG_KPROBE_EVENT on 4.x
+          grep -qE "^CONFIG_KPROBE_EVENTS?=y" "$defconfig" || echo "CONFIG_KPROBE_EVENTS=y" >> "$defconfig"
+
+          echo "=== defconfig tail after KernelSU integration ==="
+          tail -n 8 "$defconfig"
+
       - name: "Make defconfig"
         working-directory: ${{ env.KERNEL_NAME }}
         env:
