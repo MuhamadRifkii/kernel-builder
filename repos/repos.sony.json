@@ -5,7 +5,7 @@
       "repo": "https://github.com/MuhamadRifkii/android_kernel_sony_msm8998-EAS",
       "branch": "14-r3-p",
       "device": "maple",
-      "defconfig": "lineage-msm8998-yoshino-maple"
+      "defconfig": "lineage-msm8998-yoshino-maple_defconfig"
     },
     "withKernelSU": true,
     "toolchains": [
