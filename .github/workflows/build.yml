@@ -202,20 +202,30 @@ jobs:
           echo "=== defconfig tail after KernelSU integration ==="
           tail -n 8 "$defconfig"
 
-      - name: "Fix EAS CPU masks"
+      - name: "Fix incomplete defconfig"
         working-directory: ${{ env.KERNEL_NAME }}
         env:
           arch: ${{ steps.generate-args.outputs.ARCH }}
         run: |
-          # The single-SIM yoshino defconfigs omit LITTLE_CPU_MASK/BIG_CPU_MASK.
-          # They are int symbols with no default, so silentoldconfig prompts for
-          # them interactively and aborts in CI. Set the same values the sibling
-          # *_dsds defconfigs use: LITTLE=A53 CPU0-3 (0x0f), big=A73 CPU4-7 (0xf0).
-          # Only added when absent, so kernels that already define them are untouched.
+          # The single-SIM yoshino defconfigs are missing several entries that the
+          # sibling *_dsds defconfigs (same SoC) include. Without them the build
+          # either prompts interactively in CI or fails on an undefined CONFIG_ macro.
+          # Each line is only added when absent, so kernels that already define the
+          # symbols are left untouched.
           defconfig="./arch/$arch/configs/$DEFCONFIG_NAME"
+
+          # EAS big.LITTLE masks: int symbols with no default, so silentoldconfig
+          # would prompt for them and abort. LITTLE=A53 CPU0-3 (0x0f), big=A73 CPU4-7 (0xf0).
           grep -q "^CONFIG_LITTLE_CPU_MASK=" "$defconfig" || echo "CONFIG_LITTLE_CPU_MASK=15" >> "$defconfig"
           grep -q "^CONFIG_BIG_CPU_MASK=" "$defconfig" || echo "CONFIG_BIG_CPU_MASK=240" >> "$defconfig"
-          grep -E "^(CONFIG_LITTLE_CPU_MASK|CONFIG_BIG_CPU_MASK)=" "$defconfig"
+
+          # mdss_fb.c uses CONFIG_DRM_FRAME_BOOST_TIMEOUT as a value unconditionally,
+          # but it is only emitted when DEVFREQ_BOOST is on. Enabling it also defines
+          # the related sub-options the devfreq_boost driver reads the same way.
+          grep -q "^CONFIG_DEVFREQ_BOOST=" "$defconfig" || echo "CONFIG_DEVFREQ_BOOST=y" >> "$defconfig"
+
+          echo "=== ensured symbols ==="
+          grep -E "^(CONFIG_LITTLE_CPU_MASK|CONFIG_BIG_CPU_MASK|CONFIG_DEVFREQ_BOOST)=" "$defconfig"
 
       - name: "Make defconfig"
         working-directory: ${{ env.KERNEL_NAME }}
