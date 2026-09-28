@@ -194,6 +194,12 @@ jobs:
           # so the driver integration is done here explicitly and pinned to the tag.
           git clone --depth 1 --branch v3.2.0 https://github.com/ReSukiSU/ReSukiSU KernelSU
 
+          # v3.2.0 uses MODULE_IMPORT_NS() unconditionally, but that macro only
+          # exists on kernel 5.4+ (module symbol namespacing). KSU is built into
+          # the kernel here, so the namespace import is irrelevant on 4.4; drop
+          # those lines so the driver compiles.
+          grep -rl 'MODULE_IMPORT_NS' KernelSU/kernel 2>/dev/null | xargs -r sed -i '/MODULE_IMPORT_NS/d'
+
           cd drivers
           ln -sf ../KernelSU/kernel kernelsu
           grep -q "kernelsu" Makefile || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> Makefile
