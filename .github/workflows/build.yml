@@ -200,6 +200,12 @@ jobs:
           # those lines so the driver compiles.
           grep -rl 'MODULE_IMPORT_NS' KernelSU/kernel 2>/dev/null | xargs -r sed -i '/MODULE_IMPORT_NS/d'
 
+          # v3.2.0 includes <linux/compiler_types.h> unconditionally, but that
+          # header only exists on kernel 4.18+. Guard it so the 4.4 build works
+          # (this mirrors the fix in newer ReSukiSU).
+          grep -q '__has_include(<linux/compiler_types.h>)' KernelSU/kernel/allowlist.c || \
+            sed -i 's|^#include <linux/compiler_types.h>$|#if __has_include(<linux/compiler_types.h>)\n#include <linux/compiler_types.h>\n#endif|' KernelSU/kernel/allowlist.c
+
           cd drivers
           ln -sf ../KernelSU/kernel kernelsu
           grep -q "kernelsu" Makefile || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> Makefile
