@@ -7,7 +7,7 @@
             "device": "maple",
             "defconfig": "lineage-msm8998-yoshino-maple_defconfig"
         },
-        "withKernelSU": true,
+        "withKernelSU": false,
         "toolchains": [
             {
                 "repo": "https://github.com/kdrag0n/proton-clang",
