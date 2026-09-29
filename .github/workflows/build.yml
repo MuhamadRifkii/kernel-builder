@@ -306,6 +306,8 @@ jobs:
           git clone --depth 1 --branch ${{ matrix.repos.AnyKernel3.branch }} ${{ matrix.repos.AnyKernel3.repo }} AnyKernel3
           # Sony Yoshino: use Image.gz-dtb
           cp ${{ env.OUT_DIR }}/arch/${{ steps.generate-args.outputs.ARCH }}/boot/Image.gz-dtb AnyKernel3/
+          # Use stripped anykernel.sh (no device check, just kernel flasher)
+          cp ${{ github.workspace }}/anykernel/anykernel.sh AnyKernel3/anykernel.sh
 
       - name: "Pack AnyKernel3.zip"
         if: ${{ matrix.repos.AnyKernel3.use }}
