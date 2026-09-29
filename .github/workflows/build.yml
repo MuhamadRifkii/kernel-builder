@@ -5,6 +5,16 @@ env:
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Which kernel to build'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - 90hz
+          - 120hz
 
 jobs:
   Set-repos:
@@ -21,7 +31,11 @@ jobs:
         id: generate-matrix
         run: |
           echo "repos<<EOF" >> $GITHUB_OUTPUT
-          jq -s '[.[][]]' repos/repos*.json >> $GITHUB_OUTPUT
+          if [ "${{ inputs.target }}" = "both" ]; then
+            jq -s '[.[][]]' repos/repos.sony-*.json >> $GITHUB_OUTPUT
+          else
+            jq -s '[.[][]]' repos/repos.sony-${{ inputs.target }}.json >> $GITHUB_OUTPUT
+          fi
           echo "EOF" >> $GITHUB_OUTPUT
       - name: "Set builddate"
         id: generate-builddate
