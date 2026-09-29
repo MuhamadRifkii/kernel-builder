@@ -41,7 +41,7 @@
             }
         },
         "AnyKernel3": {
-            "use": false,
+            "use": true,
             "release": false,
             "repo": "https://github.com/osm0sis/AnyKernel3",
             "branch": "master"

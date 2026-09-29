@@ -300,6 +300,28 @@ jobs:
           echo "PATH Variable: $PATH"
           make ${{ env.args }}
 
+      - name: "Setup AnyKernel3"
+        if: ${{ matrix.repos.AnyKernel3.use }}
+        run: |
+          git clone --depth 1 --branch ${{ matrix.repos.AnyKernel3.branch }} ${{ matrix.repos.AnyKernel3.repo }} AnyKernel3
+          # Sony Yoshino: use Image.gz-dtb
+          cp ${{ env.OUT_DIR }}/arch/${{ steps.generate-args.outputs.ARCH }}/boot/Image.gz-dtb AnyKernel3/
+
+      - name: "Pack AnyKernel3.zip"
+        if: ${{ matrix.repos.AnyKernel3.use }}
+        run: |
+          cd AnyKernel3
+          zip -r9 ../AnyKernel3-${{ env.KERNEL_DEVICE }}-${{ env.KERNEL_NAME }}-${{ env.builddate }}.zip * -x .git README.md *placeholder
+
+      - name: "Upload AnyKernel3.zip"
+        if: ${{ matrix.repos.AnyKernel3.use }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnyKernel3-${{ env.KERNEL_DEVICE }}-${{ env.KERNEL_NAME }}-${{ env.builddate }}
+          path: AnyKernel3-${{ env.KERNEL_DEVICE }}-${{ env.KERNEL_NAME }}-${{ env.builddate }}.zip
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: "Upload Image"
         uses: actions/upload-artifact@v4
         env:
