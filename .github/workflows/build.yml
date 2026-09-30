@@ -15,6 +15,7 @@ on:
           - both
           - 90hz
           - 120hz
+          - dt2w
 
 jobs:
   Set-repos:
