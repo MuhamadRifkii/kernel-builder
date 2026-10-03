@@ -3,7 +3,7 @@
         "kernelSource": {
             "name": "android_kernel_sony_msm8998-EAS",
             "repo": "https://github.com/MuhamadRifkii/android_kernel_sony_msm8998-EAS",
-            "branch": "maple-120hz",
+            "branch": "maple-120hz-rtl8821cu",
             "device": "maple",
             "defconfig": "lineage-msm8998-yoshino-maple_defconfig"
         },
