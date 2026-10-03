@@ -303,6 +303,7 @@ jobs:
         run: |
           echo "PATH Variable: $PATH"
           make ${{ env.args }}
+          make ${{ env.args }} modules
 
       - name: "Upload Image"
         uses: actions/upload-artifact@v6
