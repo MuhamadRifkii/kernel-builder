@@ -333,6 +333,13 @@ jobs:
           path: ${{ env.OUT_DIR }}/arch/${{ env.arch }}/boot/Image.gz-dtb
           if-no-files-found: ignore
           retention-days: 7
+      - name: "Upload 8821cu.ko"
+        uses: actions/upload-artifact@v6
+        with:
+          name: 8821cu.ko-${{ env.KERNEL_DEVICE }}-${{ env.KERNEL_NAME }}-${{ env.builddate }}
+          path: ${{ env.OUT_DIR }}/drivers/net/wireless/rtl8821cu/8821cu.ko
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: "Upload dtbo.img"
         uses: actions/upload-artifact@v6
