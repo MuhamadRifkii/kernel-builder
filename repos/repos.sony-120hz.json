@@ -18,7 +18,7 @@
                 ]
             }
         ],
-        "ccache": true,
+        "ccache": false,
         "params": {
             "ARCH": "arm64",
             "CC": "clang",
